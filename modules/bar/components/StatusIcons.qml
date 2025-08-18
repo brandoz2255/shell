@@ -29,6 +29,18 @@ StyledRect {
         anchors.centerIn: parent
         spacing: Appearance.spacing.smaller / 2
 
+        // Theme toggle icon
+        WrappedLoader {
+            name: "themetoggle"
+            active: Config.bar.status.showThemeToggle
+
+            sourceComponent: MaterialIcon {
+                animate: true
+                text: Colours.light ? "dark_mode" : "light_mode"
+                color: root.colour
+            }
+        }
+
         // Audio icon
         WrappedLoader {
             name: "audio"
