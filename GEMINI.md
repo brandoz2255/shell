@@ -70,3 +70,25 @@ The shell is configured through `~/.config/caelestia/shell.json`. The available 
 ### IPC and Scripting
 
 The shell exposes an IPC interface through the `caelestia` command-line tool, allowing for scripting and integration with other tools. The available commands can be listed with `caelestia shell -s`. Keybinds are managed through Hyprland's global shortcuts.
+
+---
+
+## Gemini Context Log (2025-08-18)
+
+### Task: Document the Dynamic Color System
+
+**Objective**: Create detailed documentation explaining the wallpaper-based color extraction feature triggered by the `SUPER + W` keybinding.
+
+**Process Summary**:
+
+1.  **Initiation**: The investigation started by examining the Hyprland configuration files to locate the relevant keybinding.
+2.  **File Investigation**: The following files were analyzed to trace the entire workflow from keypress to UI update:
+    *   `~/.config/hypr/hyprland.conf`: Main Hyprland config, pointed to user-specific keybinds.
+    *   `~/.config/hypr/UserConfigs/UserKeybinds.conf`: Identified the `SUPER + W` binding and the script it executes.
+    *   `~/.config/hypr/UserScripts/WallpaperSelect.sh`: The first script in the chain, responsible for user wallpaper selection and calling the color extractor.
+    *   `/home/dulc3/.local/bin/qs-dynamic-colors`: The core script that uses ImageMagick to extract colors, generate a theme, and write it to a state file.
+    *   `config/Config.qml`: Initial investigation point for how Quickshell handles configuration.
+    *   `services/Colours.qml`: The key QML component that watches for changes to the theme file (`scheme.json`) and applies the new colors dynamically to the UI.
+3.  **Output**: A new, detailed documentation file was created and subsequently updated with more in-depth information.
+    *   **File Created**: `DYNAMIC_COLOR_SYSTEM.md`
+    *   **Content**: The file provides a full overview of the system, a detailed breakdown of the scripts and their logic, and instructions on how to replicate the setup on a new machine.
