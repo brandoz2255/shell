@@ -1,233 +1,193 @@
-# Dynamic Color System for Quickshell Caelestia
+# Dynamic Wallpaper Color System
 
-## Overview
+This document details the mechanism that allows the Caelestia Shell to dynamically extract a color scheme from the current wallpaper and apply it across the entire user interface. The process is initiated by the user via a keybinding.
 
-This system automatically extracts colors from your wallpaper and applies them to the Quickshell interface, creating a cohesive theme that matches your wallpaper while maintaining UI usability.
+## Flow Overview
 
-## How It Works
+The entire process can be broken down into three main stages:
 
-### 1. Color Extraction Process
+1.  **User Trigger**: The user presses `SUPER + W` in Hyprland.
+2.  **Script Execution**: A series of scripts are executed to select a wallpaper, extract its dominant colors, and generate a new theme file.
+3.  **UI Application**: The Quickshell environment detects the new theme file and dynamically applies the new colors to all UI components.
 
-**Script Location:** `/home/dulc3/.local/bin/qs-dynamic-colors`
+---
 
-The system uses ImageMagick to analyze wallpapers:
-```bash
-# Extracts 12 dominant colors for better selection
-COLORS=$(magick "$WALLPAPER" -resize 100x100 -colors 12 -unique-colors txt:- | grep -o '#[0-9A-F]\{6\}' | head -12)
-```
+## 1. The Keybinding (Hyprland)
 
-### 2. Smart Color Selection
+The process starts with a keybinding defined in your Hyprland configuration.
 
-Instead of using raw extracted colors, the system intelligently selects colors based on luminance:
+-   **File**: `~/.config/hypr/UserConfigs/UserKeybinds.conf`
+-   **Binding**:
+    ```ini
+    bind = $mainMod, W, exec, $UserScripts/WallpaperSelect.sh
+    ```
+-   **Action**: When `SUPER + W` is pressed, Hyprland executes the shell script `WallpaperSelect.sh`.
 
-**Luminance Calculation:**
-```bash
-get_luminance() {
-    local color="$1"
-    local r=$((0x${color:1:2}))
-    local g=$((0x${color:3:2}))
-    local b=$((0x${color:5:2}))
-    echo $(( (r * 299 + g * 587 + b * 114) / 1000 ))
-}
-```
+---
 
-**Color Selection Criteria:**
-- **Accent colors:** Luminance 80-200 (visible but not blindingly bright)
-- **Primary colors:** Luminance 40-120 (readable, not too dark)
-- **Surfaces:** Lightened versions of primary colors for better visibility
+## 2. Script-Based Color Extraction
 
-### 3. Color Processing Functions
+This stage is handled by two primary scripts that work in tandem.
 
-**Darken Function (20% reduction):**
-```bash
-darken_color() {
-    r=$(( r * 8 / 10 ))
-    g=$(( g * 8 / 10 ))
-    b=$(( b * 8 / 10 ))
-}
-```
+### Script 1: Wallpaper Selection
 
-**Lighten Function (+80 brightness):**
-```bash
-lighten_color() {
-    r=$(( (r + 80) > 255 ? 255 : (r + 80) ))
-    g=$(( (g + 80) > 255 ? 255 : (g + 80) ))
-    b=$(( (b + 80) > 255 ? 255 : (b + 80) ))
-}
-```
+The first script allows the user to select a wallpaper, and then triggers the color extraction.
 
-### 4. Theme Application
+-   **Script**: `~/.config/hypr/UserScripts/WallpaperSelect.sh`
+-   **Logic**:
+    1.  It uses `rofi` to display a list of available wallpapers from `~/Pictures/wallpapers`.
+    2.  Once an **image** wallpaper is selected, it calls the `apply_image_wallpaper` function.
+    3.  This function sets the new wallpaper using `swww`.
+    4.  Crucially, it then executes the next script in the chain, `qs-dynamic-colors`, passing the path of the selected wallpaper to it.
 
-**Color Mapping Strategy:**
-- `primary`: Extracted accent color (most vibrant)
-- `secondary`: Darkened version of accent  
-- `tertiary`: Extracted primary color (darker)
-- `surface`: Lightened primary (better visibility)
-- `background`: Always "#1e1e2e" (consistent dark base)
-- `outline`: Always "#89b4fa" (bright blue for borders)
-- `on*` colors: White (#ffffff) for maximum contrast
+    ```bash
+    # Snippet from WallpaperSelect.sh
+    apply_image_wallpaper() {
+      local image_path="$1"
+      # ... (code to set wallpaper with swww) ...
 
-### 5. Integration with Wallpaper Scripts
+      # Update Quickshell colors dynamically
+      if command -v qs-dynamic-colors &>/dev/null; then
+        qs-dynamic-colors "$image_path" &
+      fi
 
-**Modified Scripts:**
-- `WallpaperSelect.sh` (Super+W keybind)
-- `WallpaperRandom.sh` (Ctrl+Alt+W keybind)
+      # ... (other refresh scripts) ...
+    }
+    ```
 
-**Integration Code:**
-```bash
-# Update Quickshell colors dynamically
-if command -v qs-dynamic-colors &>/dev/null; then
-    qs-dynamic-colors "$image_path" &
-fi
-```
+### Script 2: Color Extraction & Theming
 
-## File Structure
+This is the core script responsible for generating the color palette.
 
-```
-~/.local/bin/
-├── qs-dynamic-colors          # Main color extraction script
-└── swww-colors               # SWWW wrapper (if needed)
+-   **Script**: `~/.local/bin/qs-dynamic-colors`
+-   **Logic**:
+    1.  **Color Extraction**: It uses **ImageMagick** to extract the 12 most dominant colors from the wallpaper image file provided as an argument.
+        ```bash
+        COLORS=$(magick "$WALLPAPER" -resize 100x100 -colors 12 -unique-colors txt:- | grep -o '#[0-9A-F]\{6\}' | head -12)
+        ```
+    2.  **Color Analysis**: The script calculates the luminance of each color to make intelligent decisions. It determines if the wallpaper is "bright" or "dark" overall to adjust the theme accordingly.
+    3.  **Palette Generation**: It selects the best colors for different UI roles (`primary`, `secondary`, `surface`, `accent`, etc.) based on their calculated luminance, ensuring a usable and aesthetically pleasing theme. It has built-in fallbacks in case suitable colors aren't found.
+    4.  **Theme File Creation**: It writes the final color palette into a JSON file in a specific format that Quickshell can understand.
+        -   **Output File**: `~/.local/state/caelestia/scheme.json`
+        -   **Format**:
+            ```json
+            {
+              "name": "dynamic",
+              "flavour": "dark",
+              "mode": "dark",
+              "colours": {
+                "background": "1e1e2e",
+                "surface": "5a5b74",
+                "primary": "a6e3a1",
+                "secondary": "e5c786",
+                "tertiary": "89b4fa",
+                "outlineVariant": "cba6f7",
+                "...": "..."
+              }
+            }
+            ```
+    5.  **Quickshell Restart**: To ensure the changes are applied everywhere, the script forcefully restarts the Caelestia Shell.
+        ```bash
+        pkill -f "qs.*caelestia"
+        sleep 3
+        qs -c caelestia &
+        ```
 
-~/.local/state/caelestia/
-└── scheme.json               # Generated color scheme
+---
 
-~/.config/quickshell/caelestia/my-scripts/hypr/UserScripts/
-├── WallpaperSelect.sh        # Modified for dynamic colors
-└── WallpaperRandom.sh        # Modified for dynamic colors
-```
+## 3. UI Application (Quickshell/QML)
 
-## Why This Approach
+The Caelestia Shell is built to react to changes in the theme file automatically.
 
-### Problems with Simple Color Extraction
-1. **Poor Contrast:** Raw wallpaper colors often too dark/similar
-2. **Invisible UI:** Pure black making text/borders disappear  
-3. **Inconsistent Results:** Some wallpapers produce unusable themes
+-   **File**: `services/Colours.qml`
+-   **Logic**:
+    1.  This QML singleton is the central hub for all color definitions in the application.
+    2.  It uses a `FileView` component to monitor the `~/.local/state/caelestia/scheme.json` file for any changes.
+        ```qml
+        FileView {
+            path: `${Paths.stringify(Paths.state)}/scheme.json`
+            watchChanges: true
+            onFileChanged: reload()
+            onLoaded: root.load(text(), false)
+        }
+        ```
+    3.  When the file is changed (by the `qs-dynamic-colors` script), the `onFileChanged` signal is triggered, which calls the `load()` function.
+    4.  The `load()` function parses the JSON from `scheme.json` and updates a global `M3Palette` object with the new hex color values.
+    5.  All other UI components in the shell reference the colors from this central `Colours.qml` singleton. Because QML properties are reactive, any component using a dynamic color will update its appearance automatically as soon as the palette changes.
 
-### Our Solutions
-1. **Luminance-Based Selection:** Only pick colors within usable brightness ranges
-2. **Smart Contrast:** White text on colored backgrounds, fixed bright outlines
-3. **Consistent Base:** Always use proper dark background, never pure black
-4. **Color Role Optimization:** Swap primary/tertiary to use most vibrant color as accent
+    *(Note: While the shell is designed to hot-reload colors, the `qs-dynamic-colors` script performs a full restart to guarantee that all elements, including those that might not be bound dynamically, are updated.)*
 
-## Future Modifications
+---
 
-### Color Selection Tuning
+## How to Replicate on Another Machine
 
-**Adjust Luminance Ranges:**
-```bash
-# For brighter accents, increase range:
-if [[ $lum -gt 100 && $lum -lt 220 ]]; then
+To get this dynamic color feature working on a new machine, you would need to:
 
-# For darker primaries:  
-if [[ $lum -gt 20 && $lum -lt 100 ]]; then
-```
+1.  **Install Dependencies**:
+    -   `hyprland`: The window manager.
+    -   `rofi`: For the wallpaper selection menu.
+    -   `imagemagick`: For color extraction.
+    -   `swww` or another wallpaper daemon.
+    -   The Caelestia Quickshell environment itself.
 
-**Modify Color Processing:**
-```bash
-# Lighter surfaces (current: +80)
-r=$(( (r + 120) > 255 ? 255 : (r + 120) ))
+2.  **Copy the Scripts**:
+    -   Place `WallpaperSelect.sh` in `~/.config/hypr/UserScripts/`.
+    -   Place `qs-dynamic-colors` in a directory included in your system's `$PATH` (e.g., `~/.local/bin/`).
+    -   Ensure both scripts are executable (`chmod +x <script_name>`).
 
-# Less darkening (current: 20% reduction)
-r=$(( r * 9 / 10 ))  # 10% reduction instead
-```
+3.  **Set up Hyprland Keybinding**:
+    -   Add the `bind = $mainMod, W, exec, $UserScripts/WallpaperSelect.sh` line to your Hyprland keybinding configuration file (`~/.config/hypr/UserConfigs/UserKeybinds.conf` in this setup).
 
-### Color Mapping Adjustments
+4.  **Create Wallpaper Directory**:
+    -   Ensure you have a `~/Pictures/wallpapers` directory, or update the `wallDIR` variable in `WallpaperSelect.sh` to point to your preferred location.
 
-**In the JSON generation section, modify:**
-```bash
-"primary": "${TERTIARY#\#}",           # Currently: extracted accent
-"secondary": "${SECONDARY#\#}",        # Currently: darkened accent  
-"tertiary": "${PRIMARY#\#}",           # Currently: extracted primary
-"surface": "${SURFACE#\#}",            # Currently: lightened primary
-```
+5.  **Verify Quickshell Paths**:
+    -   The scripts and QML code rely on paths like `~/.local/state/caelestia/`. These are generally handled by the Caelestia Shell's own setup, but ensure you have the necessary permissions for these directories to be created and written to.
 
-**Example: Make UI more vibrant**
-```bash
-"primary": "${ACCENT#\#}",             # Use pure accent
-"surfaceContainer": "${TERTIARY#\#}",  # Use more colorful surfaces
-"outline": "${ACCENT#\#}",             # Use wallpaper accent for borders
-```
+---
 
-### Advanced Modifications
+## Section 2: Detailed Script Logic (`qs-dynamic-colors`)
 
-**1. Multiple Color Extraction Strategies:**
-```bash
-# Add color temperature detection
-get_color_temperature() {
-    # Warm vs cool color detection
-    # Adjust color selection based on temperature
-}
+This section provides a deeper dive into the internal workings of the `qs-dynamic-colors` script.
 
-# Add saturation boosting for dull wallpapers
-boost_saturation() {
-    # Convert to HSV, increase saturation, convert back
-}
-```
+### Color Manipulation Functions
 
-**2. User Preferences:**
-```bash
-# Add config file: ~/.config/qs-colors.conf
-ACCENT_BRIGHTNESS=150    # Preferred accent luminance
-SURFACE_LIGHTNESS=80     # How much to lighten surfaces
-USE_WALLPAPER_OUTLINE=false  # Use fixed blue vs wallpaper colors
-```
+The script defines several Bash functions to handle color conversions and modifications.
 
-**3. Fallback Strategies:**
-```bash
-# If no good colors found, use preset themes:
-FALLBACK_THEMES=(
-    "catppuccin"  # Purple theme
-    "tokyo-night" # Blue theme  
-    "gruvbox"     # Orange theme
-)
-```
+**1. `get_luminance()`**
+This function is critical for making intelligent color choices. It takes a hex color code (e.g., `#89b4fa`) and calculates its perceived brightness.
 
-**4. Color Harmony Rules:**
-```bash
-# Ensure colors work well together
-check_color_harmony() {
-    # Implement color theory rules
-    # Complementary, analogous, triadic schemes
-}
-```
+-   **Logic**:
+    1.  It separates the hex code into its Red (R), Green (G), and Blue (B) components.
+    2.  It applies a standard formula (`(R*299 + G*587 + B*114) / 1000`) that weights each component according to how the human eye perceives its brightness. Green appears brightest, followed by red, then blue.
+    3.  It returns a value between 0 (black) and 255 (white).
+-   **Purpose**: To determine if a color is light or dark, which is essential for selecting background, surface, and accent colors that contrast well.
 
-### Testing New Configurations
+**2. `darken_color()` and `lighten_color()`**
+These functions are used to create variations of the extracted colors.
 
-**Test with specific wallpaper:**
-```bash
-qs-dynamic-colors "/path/to/test-wallpaper.jpg"
-```
+-   **Logic**:
+    -   `darken_color`: Multiplies the R, G, and B values by 0.8 (an 80% tint), effectively making the color 20% darker.
+    -   `lighten_color`: Adds a fixed value of 80 to each R, G, and B component (capping at 255) to make the color significantly brighter.
+-   **Purpose**: To derive related colors from a single source color. For example, the `SECONDARY` color is a darkened version of the `BEST_ACCENT` color, and the `SURFACE` is a lightened version of the `BEST_PRIMARY` color, ensuring harmonic relationships between them.
 
-**Debug color selection:**
-```bash
-# Add to script for debugging:
-echo "Extracted colors: ${COLOR_ARRAY[@]}"
-echo "Selected accent: $BEST_ACCENT (luminance: $(get_luminance "$BEST_ACCENT"))"
-echo "Selected primary: $BEST_PRIMARY (luminance: $(get_luminance "$BEST_PRIMARY"))"
-```
+### Wallpaper Brightness Detection
 
-**Preview without applying:**
-```bash
-# Modify script to show preview instead of applying:
-cat "$SCHEME_FILE"  # Show generated JSON
-# Comment out the restart commands
-```
+Before selecting colors, the script determines if the wallpaper is predominantly light or dark. This allows it to tailor the theme more appropriately.
 
-## Current Behavior Summary
+-   **Logic**:
+    1.  It calculates the luminance of all 12 extracted colors using the `get_luminance` function.
+    2.  It computes the average brightness across all colors.
+    3.  If the `AVERAGE_BRIGHTNESS` is below a threshold (80), it classifies the wallpaper as "dark".
+-   **Purpose**: This classification changes the acceptable luminance ranges for primary and accent colors. For a dark wallpaper, it will look for darker primary colors and more vibrant accents to create a more balanced and less jarring theme.
 
-✅ **What Works Well:**
-- Automatic wallpaper integration via Super+W / Ctrl+Alt+W
-- Smart color selection avoiding pure black/poor contrast
-- Consistent UI visibility with white text and bright borders
-- Good balance between wallpaper theming and usability
+### Intelligent Color Assignment
 
-⚠️ **Known Limitations:**
-- Some wallpapers may still produce similar surface/primary colors
-- Very colorful wallpapers might need manual tuning
-- Monochrome wallpapers fall back to preset colors
+This is the final step where the script assigns the extracted colors to specific roles in the theme.
 
-🔧 **Easy Tweaks:**
-- Adjust luminance ranges for different color preferences
-- Modify lightening/darkening amounts
-- Change outline color strategy
-- Add more sophisticated color harmony rules
+-   **Logic**:
+    1.  It iterates through the array of 12 colors from ImageMagick.
+    2.  It uses the luminance value of each color to find the first one that fits within the predefined ranges for `BEST_ACCENT` and `BEST_PRIMARY`.
+    3.  It then assigns the final theme colors (`PRIMARY`, `SECONDARY`, `TERTIARY`, etc.) using the best-fit colors it found.
+    4.  **Fallbacks**: If no suitable color is found in the wallpaper for a specific role (e.g., no color is bright enough to be an accent), it uses a hardcoded fallback color (e.g., `#89b4fa` for `PRIMARY`). This ensures the UI is always usable, even with monochromatic or unusual wallpapers.
+    5.  **Static Background**: The `BACKGROUND` color is always set to a static dark color (`#1e1e2e`) to ensure readability and a consistent base, regardless of the wallpaper.
