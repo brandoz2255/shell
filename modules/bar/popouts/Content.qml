@@ -52,6 +52,13 @@ Item {
             }
         }
 
+        Popout {
+            name: "themetoggle"
+            sourceComponent: ThemeToggle {
+                wrapper: root.wrapper
+            }
+        }
+
         Repeater {
             model: ScriptModel {
                 values: [...SystemTray.items.values]
