@@ -171,6 +171,11 @@ Item {
             icon: "tune"
             label: "audio"
         }
+
+        NavItem {
+            icon: "palette"
+            label: "appearance"
+        }
     }
 
     component NavItem: Item {

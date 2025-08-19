@@ -93,7 +93,7 @@ Item {
                     radius: Appearance.rounding.normal
                     
                     function onClicked(): void {
-                        Colours.setMode("light");
+                        Quickshell.exec("bash", ["-c", "echo light > /home/dulc3/.local/state/caelestia/current_mode.txt"]);
                         root.wrapper.hasCurrent = false;
                     }
                 }
@@ -149,7 +149,7 @@ Item {
                     radius: Appearance.rounding.normal
                     
                     function onClicked(): void {
-                        Colours.setMode("dark");
+                        Quickshell.exec("bash", ["-c", "echo dark > /home/dulc3/.local/state/caelestia/current_mode.txt"]);
                         root.wrapper.hasCurrent = false;
                     }
                 }

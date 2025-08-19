@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 
+import "."
 import "bluetooth"
 import qs.components
 import qs.services
@@ -52,6 +53,11 @@ ClippingRectangle {
                     font.weight: 500
                 }
             }
+        }
+
+        Pane {
+            index: 3
+            sourceComponent: AppearancePane {}
         }
 
         Behavior on y {
