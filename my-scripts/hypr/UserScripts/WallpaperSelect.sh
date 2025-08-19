@@ -172,6 +172,10 @@ apply_image_wallpaper() {
 
   # Update Quickshell colors dynamically
   if command -v qs-dynamic-colors &>/dev/null; then
+    # Save the current wallpaper path for the theme manager to use
+    mkdir -p ~/.local/state/caelestia
+    echo "$image_path" > ~/.local/state/caelestia/current_wallpaper
+    # Run the script. It will automatically pick up the saved light/dark mode.
     qs-dynamic-colors "$image_path" &
   fi
 
