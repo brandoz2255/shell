@@ -2,6 +2,8 @@
 # /* ---- 💫 https://github.com/JaKooLit 💫 ---- */
 # This script for selecting wallpapers (SUPER W)
 
+echo "DEBUG: WallpaperSelect.sh started at $(date)" >> /tmp/wallpaper-debug.log
+
 # WALLPAPERS PATH
 terminal=kitty
 wallDIR="$HOME/Pictures/wallpapers"
@@ -171,16 +173,24 @@ apply_image_wallpaper() {
   swww img -o "$focused_monitor" "$image_path" $SWWW_PARAMS
 
   # Update Quickshell colors dynamically
+  echo "DEBUG: PATH is: $PATH" >> /tmp/wallpaper-debug.log
+  echo "DEBUG: Looking for qs-dynamic-colors..." >> /tmp/wallpaper-debug.log
   if command -v qs-dynamic-colors &>/dev/null; then
-    # Save the current wallpaper path for the theme manager to use
-    mkdir -p ~/.local/state/caelestia
-    echo "$image_path" > ~/.local/state/caelestia/current_wallpaper
-    # Run the script. It will automatically pick up the saved light/dark mode.
+    echo "DEBUG: Found qs-dynamic-colors, running with $image_path" >> /tmp/wallpaper-debug.log
     qs-dynamic-colors "$image_path" &
+  else
+    echo "DEBUG: qs-dynamic-colors not found in PATH" >> /tmp/wallpaper-debug.log
+    echo "DEBUG: Trying full path..." >> /tmp/wallpaper-debug.log
+    if [[ -x "$HOME/.local/bin/qs-dynamic-colors" ]]; then
+      echo "DEBUG: Running with full path" >> /tmp/wallpaper-debug.log
+      "$HOME/.local/bin/qs-dynamic-colors" "$image_path" &
+    else
+      echo "DEBUG: Script not executable at $HOME/.local/bin/qs-dynamic-colors" >> /tmp/wallpaper-debug.log
+    fi
   fi
 
-  # Run additional scripts
-  "$SCRIPTSDIR/WallustSwww.sh"
+  # ... (other refresh scripts) ...
+  
   sleep 2
   "$SCRIPTSDIR/Refresh.sh"
   sleep 1

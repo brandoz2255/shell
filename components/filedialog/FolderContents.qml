@@ -163,7 +163,7 @@ Item {
 
                 onStatusChanged: {
                     if (status === Image.Error)
-                        source = Quickshell.iconPath("error");
+                        source = "";
                 }
 
                 Process {
@@ -172,7 +172,7 @@ Item {
                     stdout: StdioCollector {
                         onStreamFinished: {
                             const mime = text.split(";")[0].replace("/", "-");
-                            icon.source = Images.validImageTypes.some(t => mime === `image-${t}`) ? item.fileUrl : Quickshell.iconPath(mime, "image-missing");
+                            icon.source = Images.validImageTypes.some(t => mime === `image-${t}`) ? item.fileUrl : "";
                         }
                     }
                 }

@@ -132,13 +132,29 @@ StackView {
 
                             anchors.left: parent.left
 
-                            active: item.modelData.icon !== ""
+                            active: {
+                                const menuText = item.modelData.text.toLowerCase();
+                                const iconPath = item.modelData.icon.toLowerCase();
+                                // Block bluetooth and other problematic items
+                                const blockedMenuItems = [
+                                    "send files to device", "reconnect to", "local services", 
+                                    "plugins", "help", "exit", "bluetooth", "pair",
+                                    "connect", "disconnect", "remove", "trust", "untrust"
+                                ];
+                                
+                                const hasBlockedText = blockedMenuItems.some(blocked => 
+                                    menuText.includes(blocked) || iconPath.includes("bluetooth")
+                                );
+                                
+                                return item.modelData.icon !== "" && !hasBlockedText;
+                            }
                             asynchronous: true
 
                             sourceComponent: IconImage {
                                 implicitSize: label.implicitHeight
 
                                 source: item.modelData.icon
+                                visible: status === Image.Ready
                             }
                         }
 

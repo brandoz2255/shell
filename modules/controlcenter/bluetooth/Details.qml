@@ -31,12 +31,10 @@ Item {
             anchors.right: parent.right
             spacing: Appearance.spacing.normal
 
-            MaterialIcon {
+            Item {
                 Layout.alignment: Qt.AlignHCenter
-                animate: true
-                text: Icons.getBluetoothIcon(root.device.icon)
-                font.pointSize: Appearance.font.size.extraLarge * 3
-                font.bold: true
+                Layout.preferredWidth: Appearance.font.size.extraLarge * 3
+                Layout.preferredHeight: Appearance.font.size.extraLarge * 3
             }
 
             StyledText {
