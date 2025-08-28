@@ -198,18 +198,11 @@ ColumnLayout {
                         color: Qt.alpha(device.connected ? Colours.palette.m3onPrimaryContainer : device.modelData.bonded ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface, stateLayer.pressed ? 0.1 : stateLayer.containsMouse ? 0.08 : 0)
                     }
 
-                    MaterialIcon {
+                    Item {
                         id: icon
-
                         anchors.centerIn: parent
-                        text: Icons.getBluetoothIcon(device.modelData.icon)
-                        color: device.connected ? Colours.palette.m3onPrimaryContainer : device.modelData.bonded ? Colours.palette.m3onSecondaryContainer : Colours.palette.m3onSurface
-                        font.pointSize: Appearance.font.size.large
-                        fill: device.connected ? 1 : 0
-
-                        Behavior on fill {
-                            Anim {}
-                        }
+                        width: Appearance.font.size.large
+                        height: Appearance.font.size.large
                     }
                 }
 

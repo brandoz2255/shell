@@ -107,32 +107,11 @@ StyledRect {
                         values: Bluetooth.devices.values.filter(d => d.state !== BluetoothDeviceState.Disconnected)
                     }
 
-                    MaterialIcon {
+                    Item {
                         id: device
-
                         required property BluetoothDevice modelData
-
-                        animate: true
-                        text: Icons.getBluetoothIcon(modelData.icon)
-                        color: root.colour
-                        fill: 1
-
-                        SequentialAnimation on opacity {
-                            running: device.modelData.state !== BluetoothDeviceState.Connected
-                            alwaysRunToEnd: true
-                            loops: Animation.Infinite
-
-                            Anim {
-                                from: 1
-                                to: 0
-                                easing.bezierCurve: Appearance.anim.curves.standardAccel
-                            }
-                            Anim {
-                                from: 0
-                                to: 1
-                                easing.bezierCurve: Appearance.anim.curves.standardDecel
-                            }
-                        }
+                        width: 16
+                        height: 16
                     }
                 }
             }

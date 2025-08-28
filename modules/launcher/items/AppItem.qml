@@ -35,7 +35,7 @@ Item {
         IconImage {
             id: icon
 
-            source: Quickshell.iconPath(root.modelData?.icon, "image-missing")
+            source: Quickshell.iconPath(root.modelData?.icon, "org.xfce.thunar")
             implicitSize: parent.height * 0.8
 
             anchors.verticalCenter: parent.verticalCenter

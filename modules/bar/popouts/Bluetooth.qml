@@ -7,8 +7,10 @@ import qs.config
 import qs.utils
 import Quickshell
 import Quickshell.Bluetooth
+import Quickshell.Widgets
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 
 ColumnLayout {
     id: root
@@ -90,8 +92,9 @@ ColumnLayout {
                 Anim {}
             }
 
-            MaterialIcon {
-                text: Icons.getBluetoothIcon(device.modelData.icon)
+            Item {
+                width: 16
+                height: 16
             }
 
             StyledText {
